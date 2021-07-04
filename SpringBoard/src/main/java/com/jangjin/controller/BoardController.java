@@ -1,9 +1,12 @@
 package com.jangjin.controller;
 
+import java.util.List;
+
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -12,9 +15,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.jangjin.service.BoardService;
+import com.jangjin.service.ReplyService;
 import com.jangjin.vo.BoardVO;
-import com.jangjin.vo.Criteria;
 import com.jangjin.vo.PageMaker;
+import com.jangjin.vo.ReplyVO;
 import com.jangjin.vo.SearchCriteria;
 
 @Controller
@@ -25,6 +29,9 @@ public class BoardController {
 	
 	@Inject
 	BoardService service;
+	
+	@Autowired
+	ReplyService replyservice;
 	
 	// 게시판 글 작성 화면
 	@RequestMapping(value = "/board/writeView", method = RequestMethod.GET)
@@ -66,6 +73,9 @@ public class BoardController {
 		
 		model.addAttribute("read", service.read(vo.getBno()));
 		model.addAttribute("scri", scri);
+		
+		List<ReplyVO> replyList = replyservice.readReply(vo.getBno());
+		model.addAttribute("replyList", replyList);
 		
 		return "board/readView";
 	
@@ -109,5 +119,73 @@ public class BoardController {
 		rttr.addAttribute("keyword", scri.getKeyword());
 		
 		return "redirect:/board/list";
+		
 	}
+	
+		// 댓글 작성하기
+		@RequestMapping(value = "/board/replyWrite", method = RequestMethod.POST)
+		public String replyWrite(ReplyVO vo, SearchCriteria scri, RedirectAttributes rttr) throws Exception{
+			logger.info("reply Write");
+			
+			replyservice.writeReply(vo);
+			
+			rttr.addAttribute("bno",vo.getBno());
+			rttr.addAttribute("page", scri.getPage());
+			rttr.addAttribute("perPageNum", scri.getPerPageNum());
+			rttr.addAttribute("searchType", scri.getSearchType());
+			rttr.addAttribute("keyword", scri.getKeyword());
+			
+			return "redirect:/board/readView";	
+		}
+	
+		//댓글 수정 GET
+		@RequestMapping(value="/replyUpdateView", method = RequestMethod.GET)
+		public String replyUpdateView(ReplyVO vo, SearchCriteria scri, Model model) throws Exception {
+			logger.info("reply Write");
+			
+			model.addAttribute("replyUpdate", replyservice.selectReply(vo.getRno()));
+			model.addAttribute("scri", scri);
+			
+			return "board/replyUpdateView";
+		}
+		
+		//댓글 수정 POST
+		@RequestMapping(value="/replyUpdate", method = RequestMethod.POST)
+		public String replyUpdate(ReplyVO vo, SearchCriteria scri, RedirectAttributes rttr) throws Exception {
+			logger.info("reply Write");
+			
+			replyservice.updateReply(vo);
+			
+			rttr.addAttribute("bno", vo.getBno());
+			rttr.addAttribute("page", scri.getPage());
+			rttr.addAttribute("perPageNum", scri.getPerPageNum());
+			rttr.addAttribute("searchType", scri.getSearchType());
+			rttr.addAttribute("keyword", scri.getKeyword());
+			
+			return "redirect:/board/readView";
+		}
+	
+		// 댓글 삭제 GET
+		@RequestMapping(value = "/replyDeleteView", method = RequestMethod.GET)
+		public String replyDeleteView(ReplyVO vo, Model model, SearchCriteria scri) throws Exception{
+			logger.info("replyDeleteView");
+			
+			model.addAttribute("replydelete", replyservice.selectReply(vo.getRno()));
+			model.addAttribute("scri", scri);
+			
+			return "board/replyDeleteViews";
+		}
+	
+		// 댓글 삭제 POST
+		@RequestMapping(value = "/replyDelete", method = RequestMethod.POST)
+		public String replyDelete(ReplyVO vo, Model model, SearchCriteria scri, RedirectAttributes rttr) throws Exception{
+			logger.info("replyDelete");
+			
+			replyservice.deleteReply(vo);
+			
+			rttr.addAttribute(rttr);
+			
+			return "redirect:/board/readView";
+		}
+	
 }
