@@ -68,4 +68,27 @@ public class MemberController {
 		return "redirect:/";
 	}
 	
+	/* 회원정보 수정이라는 버튼을 통해 RequestMapping(value = "/memberUpdateView") 로 가게 해주어야한다.  
+	 * registerUpdateView에는 파라미터를 받지 않게 되어있는데 값들을 memberUpdateView.jsp 에서 쓸 수 있는데
+	 * 로그인을 하면 이미 Member값들을 session에서 이미 받고 있기 때문에 쓸 수가 있다.
+	 * 회원정보 수정 페이지에서 수정버튼을 누르면 /memberUpdate 요청을 하게 되고, 파라미터들을
+	 * session.invalidate()로 세션을 끊고 로그인 페이지로 redirect 해준다.
+	 * */
+	
+	@RequestMapping(value="/memberUpdateView", method = RequestMethod.GET)
+	public String registerUpdateView() throws Exception{
+		
+		return "member/memberUpdateView";
+	}
+
+	@RequestMapping(value="/memberUpdate", method = RequestMethod.POST)
+	public String registerUpdate(MemberVO vo, HttpSession session) throws Exception{
+		
+		service.memberUpdate(vo);
+		
+		session.invalidate();
+		
+		return "redirect:/";
+	}
+	
 }
