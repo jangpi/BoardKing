@@ -14,7 +14,7 @@ public interface BoardDAO {
 	// 글 리스트
 	public List<BoardVO> list(SearchCriteria scri) throws Exception;
 	
-	// 글 총 게수
+	// 글 총 개수
 	public int listCount(SearchCriteria scri) throws Exception;
 	
 	// 글 목록보기
