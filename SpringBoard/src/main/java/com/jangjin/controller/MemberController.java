@@ -1,14 +1,12 @@
 package com.jangjin.controller;
 
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -23,6 +21,9 @@ public class MemberController {
 	
 	@Inject
 	MemberService service;
+	
+	@Inject
+	BCryptPasswordEncoder pwdEncoder;
 	
 	private static final Logger logger = LoggerFactory.getLogger(MemberController.class);
 	
@@ -42,6 +43,10 @@ public class MemberController {
 			if(result == 1) {
 				return "/member/register";
 			}else if(result == 0) {
+				String inputPass = vo.getUserPass();
+				String pwd = pwdEncoder.encode(inputPass);
+				vo.setUserPass(pwd);
+				
 				service.register(vo);
 			}
 			
@@ -56,17 +61,21 @@ public class MemberController {
 	
 	// 로그인
 	@RequestMapping(value = "/login", method = RequestMethod.POST)
-	public String login(MemberVO vo, HttpServletRequest req, RedirectAttributes rttr) throws Exception{
+	public String login(MemberVO vo, HttpSession session, RedirectAttributes rttr) throws Exception{
 		logger.info("login");
 		
-		HttpSession session = req.getSession();
+		session.getAttribute("member");
 		MemberVO login = service.login(vo);
 		
-		if(login == null) {
+		// pwdEncoder.matches(입력된 비밀번호(), 암호화된 비밀번호()를 서로 비교해줍니다. 
+		// 맞으면 true ,false를 반환하여 로그인을 진행합니다.
+		boolean pwdMatch = pwdEncoder.matches(vo.getUserPass(), login.getUserPass());
+		
+		if(login != null && pwdMatch == true) {
+			session.setAttribute("member", login);
+		}else {
 			session.setAttribute("member", null);
 			rttr.addFlashAttribute("msg", false);
-		}else {
-			session.setAttribute("member", login);
 		}
 		
 		return "redirect:/";
@@ -115,20 +124,26 @@ public class MemberController {
 	}
 	
 	// 회원 탈퇴
-	@RequestMapping(value = "/memberDelete", method = RequestMethod.POST)
-	public String registerDelete(MemberVO vo, HttpSession session, RedirectAttributes rttr) throws Exception{
-		
-		// 세션에 있는 member를 가져와 member 변수에 넣어준다.
-		MemberVO member = (MemberVO) session.getAttribute("member");
-		// 세션에 있는 비밀번호
-		String sessionPass = member.getUserPass();
-		// vo안에 있는 비밀번호
-		String voPass = vo.getUserPass();
-		
-		if(!(sessionPass.equals(voPass))) {
-			rttr.addFlashAttribute("msg", false);
-			return "redirect:/member/memberDeleteView";
-		}
+	/*
+	 * @RequestMapping(value = "/memberDelete", method = RequestMethod.POST) public
+	 * String registerDelete(MemberVO vo, HttpSession session, RedirectAttributes
+	 * rttr) throws Exception{
+	 * 
+	 * // 세션에 있는 member를 가져와 member 변수에 넣어준다. MemberVO member = (MemberVO)
+	 * session.getAttribute("member"); // 세션에 있는 비밀번호 String sessionPass =
+	 * member.getUserPass(); // vo안에 있는 비밀번호 String voPass = vo.getUserPass();
+	 * 
+	 * if(!(sessionPass.equals(voPass))) { rttr.addFlashAttribute("msg", false);
+	 * return "redirect:/member/memberDeleteView"; }
+	 * 
+	 * service.memberDelete(vo); session.invalidate();
+	 * 
+	 * return "redirect:/"; }
+	 */
+	
+	// 회원 탈퇴 post
+	@RequestMapping(value="/memberDelete", method = RequestMethod.POST)
+	public String memberDelete(MemberVO vo, HttpSession session, RedirectAttributes rttr) throws Exception{
 		
 		service.memberDelete(vo);
 		session.invalidate();
@@ -139,11 +154,12 @@ public class MemberController {
 	// 패스워드 체크
 	@ResponseBody
 	@RequestMapping(value = "/passChk", method = RequestMethod.POST)
-	public int passChk(MemberVO vo) throws Exception{
+	public boolean passChk(MemberVO vo) throws Exception{
 		
-		int result = service.passChk(vo);
+		MemberVO login = service.login(vo);
+		boolean pwdChk = pwdEncoder.matches(vo.getUserPass(), login.getUserPass());
 		
-		return result;
+		return pwdChk;
 	}
 	
 	// ID 중복체크

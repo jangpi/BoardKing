@@ -37,8 +37,9 @@ public class MemberVO {
 	@Override
 	public String toString() {
 		return "MemberVO [userId=" + userId + ", userPass=" + userPass + ", userName=" + userName + ", regDate="
-				+ regDate + "]";
+				+ regDate  + "]";
 	}
 	
+
 
 }
