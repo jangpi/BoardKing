@@ -3,10 +3,10 @@ package com.jangjin.controller;
 import java.util.List;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -15,9 +15,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.jangjin.service.BoardService;
+import com.jangjin.service.PushService;
 import com.jangjin.service.ReplyService;
 import com.jangjin.vo.BoardVO;
+import com.jangjin.vo.MemberVO;
 import com.jangjin.vo.PageMaker;
+import com.jangjin.vo.PushVO;
 import com.jangjin.vo.ReplyVO;
 import com.jangjin.vo.SearchCriteria;
 
@@ -30,8 +33,11 @@ public class BoardController {
 	@Inject
 	BoardService service;
 	
-	@Autowired
+	@Inject
 	ReplyService replyservice;
+	
+	@Inject
+	PushService pushservice;
 	
 	// 게시판 글 작성 화면
 	@RequestMapping(value = "/board/writeView", method = RequestMethod.GET)
@@ -68,11 +74,31 @@ public class BoardController {
 	}
 	// 게시판 글 상세보기
 	@RequestMapping(value = "/readView", method = RequestMethod.GET)
-	public String read(BoardVO vo, @ModelAttribute("scri") SearchCriteria scri, Model model) throws Exception{
+	public String read(BoardVO vo, MemberVO memberVO, PushVO pushVO, @ModelAttribute("scri") SearchCriteria scri, Model model, HttpSession Session) throws Exception{
 		logger.info("read");
 		
+		// 추천버튼 제어
+		MemberVO login = (MemberVO) Session.getAttribute("login");
+		if(login != null) {
+			String sessionId = login.getUserId();
+			int bno = vo.getBno();
+			pushVO.setUserId(sessionId);
+			pushVO.setBno(bno);
+			System.out.println(pushVO);
+			int pushCheck = pushservice.pushCheck(pushVO);
+			System.out.println(pushCheck);
+			if(pushCheck == 1) {
+				model.addAttribute("pushCheck", pushCheck);
+			} else {
+				model.addAttribute("pushCheck", pushCheck);
+			}
+			System.out.println("회원" + sessionId);
+		}
 		model.addAttribute("read", service.read(vo.getBno()));
 		model.addAttribute("scri", scri);
+		
+		int Ptotal = pushservice.totalPush(pushVO);
+		model.addAttribute("push", Ptotal);
 		
 		List<ReplyVO> replyList = replyservice.readReply(vo.getBno());
 		model.addAttribute("replyList", replyList);
@@ -98,6 +124,7 @@ public class BoardController {
 		logger.info("update");
 		
 		service.update(vo);
+		
 		
 		rttr.addAttribute("page", scri.getPage());
 		rttr.addAttribute("pageNum", scri.getPerPageNum());
@@ -173,7 +200,7 @@ public class BoardController {
 			model.addAttribute("replydelete", replyservice.selectReply(vo.getRno()));
 			model.addAttribute("scri", scri);
 			
-			return "board/replyDeleteViews";
+			return "board/replyDeleteView";
 		}
 	
 		// 댓글 삭제 POST
@@ -184,6 +211,40 @@ public class BoardController {
 			replyservice.deleteReply(vo);
 			
 			rttr.addAttribute(rttr);
+			
+			return "redirect:/board/readView";
+		}
+		
+		@RequestMapping(value = "/pushIn", method = RequestMethod.POST)
+		public String pushIn(BoardVO boardVO, PushVO pushVO, SearchCriteria scri, RedirectAttributes rttr, Model model) throws Exception{
+			int bno = boardVO.getBno();
+			pushVO.setBno(bno);
+			pushservice.pushIn(pushVO);
+			
+			model.addAttribute("scri", scri);
+			rttr.addAttribute("bno", boardVO.getBno());
+			rttr.addAttribute("page", scri.getPage());
+			rttr.addAttribute("perPageNum", scri.getPerPageNum());
+			rttr.addAttribute("searchType", scri.getSearchType());
+			rttr.addAttribute("keyword", scri.getKeyword());
+			
+			return "redirect:/board/readView";	
+		}
+		
+		@RequestMapping(value = "/pushOut", method = RequestMethod.POST)
+		public String pushOut(BoardVO boardVO, PushVO pushVO, SearchCriteria scri, RedirectAttributes rttr, Model model) throws Exception{
+			
+			model.addAttribute("bno", boardVO.getBno());
+			rttr.addAttribute("bno", boardVO.getBno());
+			rttr.addAttribute("page", scri.getPage());
+			rttr.addAttribute("perPageNum", scri.getPerPageNum());
+			rttr.addAttribute("searchType", scri.getSearchType());
+			rttr.addAttribute("keyword", scri.getKeyword());
+			
+			int bno = boardVO.getBno();
+			pushVO.setBno(bno);
+			System.out.println("추천회수" + pushVO);
+			pushservice.pushOut(pushVO);
 			
 			return "redirect:/board/readView";
 		}

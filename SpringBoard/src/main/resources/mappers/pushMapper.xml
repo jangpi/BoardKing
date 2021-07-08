@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace = "pushMapper">
+	
+	<insert id = "pushIn">
+		INSERT INTO MP_PUSH (BNO, PUSHNO, USERID)
+		VALUES (#{bno}, SEQ_MP_PUSH.NEXTVAL, #{userId})
+	</insert>
+	
+	<select id= "pushCheck" resultType="int">
+		SELECT COUNT(*)
+		FROM MP_PUSH
+		WHERE BNO = #{bno}
+		AND USERID = #{userId}
+	</select>
+	
+	<select id = "totalPush" resultType="int">
+		SELECT COUNT(BNO)
+		FROM MP_PUSH
+		WHERE BNO = #{bno}
+	</select>
+	
+	<delete id = "pustOut">
+		DELETE FROM MP_PUSH
+		WHERE BNO = #{bno}
+		AND USERID = #{userId}
+	</delete>
+</mapper>
